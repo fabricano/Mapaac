@@ -1,0 +1,528 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8">
+        <meta http-equiv="X-UA-Compatible" content="IE=edge">
+        <meta name="viewport" content="initial-scale=1,user-scalable=no,maximum-scale=1,width=device-width">
+        <meta name="mobile-web-app-capable" content="yes">
+        <meta name="apple-mobile-web-app-capable" content="yes">
+        <link rel="stylesheet" href="css/leaflet.css">
+        <link rel="stylesheet" href="css/L.Control.Layers.Tree.css">
+        <link rel="stylesheet" href="css/L.Control.Locate.min.css">
+        <link rel="stylesheet" href="css/qgis2web.css">
+        <link rel="stylesheet" href="css/fontawesome-all.min.css">
+        <link rel="stylesheet" href="css/leaflet-search.css">
+        <link rel="stylesheet" href="css/filter.css">
+<link rel="stylesheet" href="css/nouislider.min.css">
+        <link rel="stylesheet" href="css/leaflet-control-geocoder.Geocoder.css">
+        <style>
+        html, body, #map {
+            width: 100%;
+            height: 100%;
+            padding: 0;
+            margin: 0;
+        }
+        </style>
+        <title></title>
+    </head>
+    <body>
+        <div id="map">
+        </div>
+        <script src="js/qgis2web_expressions.js"></script>
+        <script src="js/leaflet.js"></script>
+        <script src="js/L.Control.Layers.Tree.min.js"></script>
+        <script src="js/L.Control.Locate.min.js"></script>
+        <script src="js/leaflet.rotatedMarker.js"></script>
+        <script src="js/leaflet.pattern.js"></script>
+        <script src="js/leaflet-hash.js"></script>
+        <script src="js/Autolinker.min.js"></script>
+        <script src="js/rbush.min.js"></script>
+        <script src="js/labelgun.min.js"></script>
+        <script src="js/labels.js"></script>
+        <script src="js/leaflet-control-geocoder.Geocoder.js"></script>
+        <script src="js/leaflet-search.js"></script>
+        <script src="js/tailDT.js"></script>
+<script src="js/nouislider.min.js"></script>
+<script src="js/wNumb.js"></script>
+        <script src="data/Mendoza_1.js"></script>
+        <script src="data/Muestras1_2.js"></script>
+        <script>
+        var highlightLayer;
+        function highlightFeature(e) {
+            highlightLayer = e.target;
+
+            if (e.target.feature.geometry.type === 'LineString' || e.target.feature.geometry.type === 'MultiLineString') {
+              highlightLayer.setStyle({
+                color: '#ffff00',
+              });
+            } else {
+              highlightLayer.setStyle({
+                fillColor: '#ffff00',
+                fillOpacity: 1
+              });
+            }
+            highlightLayer.openPopup();
+        }
+        var map = L.map('map', {
+            zoomControl:false, maxZoom:28, minZoom:1
+        })
+        var hash = new L.Hash(map);
+        map.attributionControl.setPrefix('<a href="https://github.com/tomchadwin/qgis2web" target="_blank">qgis2web</a> &middot; <a href="https://leafletjs.com" title="A JS library for interactive maps">Leaflet</a> &middot; <a href="https://qgis.org">QGIS</a>');
+        var autolinker = new Autolinker({truncate: {length: 30, location: 'smart'}});
+        // remove popup's row if "visible-with-data"
+        function removeEmptyRowsFromPopupContent(content, feature) {
+         var tempDiv = document.createElement('div');
+         tempDiv.innerHTML = content;
+         var rows = tempDiv.querySelectorAll('tr');
+         for (var i = 0; i < rows.length; i++) {
+             var td = rows[i].querySelector('td.visible-with-data');
+             var key = td ? td.id : '';
+             if (td && td.classList.contains('visible-with-data') && feature.properties[key] == null) {
+                 rows[i].parentNode.removeChild(rows[i]);
+             }
+         }
+         return tempDiv.innerHTML;
+        }
+        // add class to format popup if it contains media
+		function addClassToPopupIfMedia(content, popup) {
+			var tempDiv = document.createElement('div');
+			tempDiv.innerHTML = content;
+			if (tempDiv.querySelector('td img')) {
+				popup._contentNode.classList.add('media');
+					// Delay to force the redraw
+					setTimeout(function() {
+						popup.update();
+					}, 10);
+			} else {
+				popup._contentNode.classList.remove('media');
+			}
+		}
+        var zoomControl = L.control.zoom({
+            position: 'topleft'
+        }).addTo(map);
+        L.control.locate({locateOptions: {maxZoom: 19}}).addTo(map);
+        var bounds_group = new L.featureGroup([]);
+        function setBounds() {
+            if (bounds_group.getLayers().length) {
+                map.fitBounds(bounds_group.getBounds());
+            }
+        }
+        map.createPane('pane_GoogleSatellite_0');
+        map.getPane('pane_GoogleSatellite_0').style.zIndex = 400;
+        var layer_GoogleSatellite_0 = L.tileLayer('https://mt1.google.com/vt/lyrs=s&x={x}&y={y}&z={z}', {
+            pane: 'pane_GoogleSatellite_0',
+            opacity: 1.0,
+            attribution: '<a href="https://www.google.at/permissions/geoguidelines/attr-guide.html">Map data ©2015 Google</a>',
+            minZoom: 1,
+            maxZoom: 28,
+            minNativeZoom: 0,
+            maxNativeZoom: 20
+        });
+        layer_GoogleSatellite_0;
+        map.addLayer(layer_GoogleSatellite_0);
+        function pop_Mendoza_1(feature, layer) {
+            layer.on({
+                mouseout: function(e) {
+                    for (var i in e.target._eventParents) {
+                        if (typeof e.target._eventParents[i].resetStyle === 'function') {
+                            e.target._eventParents[i].resetStyle(e.target);
+                        }
+                    }
+                    if (typeof layer.closePopup == 'function') {
+                        layer.closePopup();
+                    } else {
+                        layer.eachLayer(function(feature){
+                            feature.closePopup()
+                        });
+                    }
+                },
+                mouseover: highlightFeature,
+            });
+            var popupContent = '<table>\
+                    <tr>\
+                        <th scope="row">ZNOMBRE</th>\
+                        <td>' + (feature.properties['ZNOMBRE'] !== null ? autolinker.link(feature.properties['ZNOMBRE'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                </table>';
+            var content = removeEmptyRowsFromPopupContent(popupContent, feature);
+			layer.on('popupopen', function(e) {
+				addClassToPopupIfMedia(content, e.popup);
+			});
+			layer.bindPopup(content, { maxHeight: 400 });
+        }
+
+        function style_Mendoza_1_0() {
+            return {
+                pane: 'pane_Mendoza_1',
+                opacity: 1,
+                color: 'rgba(35,35,35,1.0)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1.0, 
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(229,83,54,0.5882352941176471)',
+                interactive: true,
+            }
+        }
+        map.createPane('pane_Mendoza_1');
+        map.getPane('pane_Mendoza_1').style.zIndex = 401;
+        map.getPane('pane_Mendoza_1').style['mix-blend-mode'] = 'normal';
+        var layer_Mendoza_1 = new L.geoJson(json_Mendoza_1, {
+            attribution: '',
+            interactive: true,
+            dataVar: 'json_Mendoza_1',
+            layerName: 'layer_Mendoza_1',
+            pane: 'pane_Mendoza_1',
+            onEachFeature: pop_Mendoza_1,
+            style: style_Mendoza_1_0,
+        });
+        bounds_group.addLayer(layer_Mendoza_1);
+        map.addLayer(layer_Mendoza_1);
+        function pop_Muestras1_2(feature, layer) {
+            layer.on({
+                mouseout: function(e) {
+                    for (var i in e.target._eventParents) {
+                        if (typeof e.target._eventParents[i].resetStyle === 'function') {
+                            e.target._eventParents[i].resetStyle(e.target);
+                        }
+                    }
+                    if (typeof layer.closePopup == 'function') {
+                        layer.closePopup();
+                    } else {
+                        layer.eachLayer(function(feature){
+                            feature.closePopup()
+                        });
+                    }
+                },
+                mouseover: highlightFeature,
+            });
+            var popupContent = '<table>\
+                    <tr>\
+                        <th scope="row">Finca</th>\
+                        <td>' + (feature.properties['Finca'] !== null ? autolinker.link(feature.properties['Finca'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">Nombre_muestra</th>\
+                        <td>' + (feature.properties['Nombre_muestra'] !== null ? autolinker.link(feature.properties['Nombre_muestra'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">Fecha_muestra</th>\
+                        <td>' + (feature.properties['Fecha_muestra'] !== null ? autolinker.link(feature.properties['Fecha_muestra'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">Profundidad</th>\
+                        <td>' + (feature.properties['Profundidad'] !== null ? autolinker.link(feature.properties['Profundidad'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">Ingrediente_bioinsumo</th>\
+                        <td>' + (feature.properties['Ingrediente_bioinsumo'] !== null ? autolinker.link(feature.properties['Ingrediente_bioinsumo'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                </table>';
+            var content = removeEmptyRowsFromPopupContent(popupContent, feature);
+			layer.on('popupopen', function(e) {
+				addClassToPopupIfMedia(content, e.popup);
+			});
+			layer.bindPopup(content, { maxHeight: 400 });
+        }
+
+        function style_Muestras1_2_0() {
+            return {
+                pane: 'pane_Muestras1_2',
+                radius: 6.0,
+                opacity: 1,
+                color: 'rgba(41,182,184,1.0)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 2.0,
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(57,255,248,1.0)',
+                interactive: true,
+            }
+        }
+        map.createPane('pane_Muestras1_2');
+        map.getPane('pane_Muestras1_2').style.zIndex = 402;
+        map.getPane('pane_Muestras1_2').style['mix-blend-mode'] = 'normal';
+        var layer_Muestras1_2 = new L.geoJson(json_Muestras1_2, {
+            attribution: '',
+            interactive: true,
+            dataVar: 'json_Muestras1_2',
+            layerName: 'layer_Muestras1_2',
+            pane: 'pane_Muestras1_2',
+            onEachFeature: pop_Muestras1_2,
+            pointToLayer: function (feature, latlng) {
+                var context = {
+                    feature: feature,
+                    variables: {}
+                };
+                return L.circleMarker(latlng, style_Muestras1_2_0(feature));
+            },
+        });
+        bounds_group.addLayer(layer_Muestras1_2);
+        map.addLayer(layer_Muestras1_2);
+        var osmGeocoder = new L.Control.Geocoder({
+            collapsed: true,
+            position: 'topleft',
+            text: 'Search',
+            title: 'Testing'
+        }).addTo(map);
+        document.getElementsByClassName('leaflet-control-geocoder-icon')[0]
+        .className += ' fa fa-search';
+        document.getElementsByClassName('leaflet-control-geocoder-icon')[0]
+        .title += 'Search for a place';
+        var baseMaps = {};
+        var overlaysTree = [
+            {label: '<img src="legend/Muestras1_2.png" /> Muestras (1)', layer: layer_Muestras1_2},
+            {label: '<img src="legend/Mendoza_1.png" /> Mendoza', layer: layer_Mendoza_1},
+            {label: "Google Satellite", layer: layer_GoogleSatellite_0},]
+        var lay = L.control.layers.tree(null, overlaysTree,{
+            //namedToggle: true,
+            //selectorBack: false,
+            //closedSymbol: '&#8862; &#x1f5c0;',
+            //openedSymbol: '&#8863; &#x1f5c1;',
+            //collapseAll: 'Collapse all',
+            //expandAll: 'Expand all',
+            collapsed: true,
+        });
+        lay.addTo(map);
+        setBounds();
+        map.addControl(new L.Control.Search({
+            layer: layer_Mendoza_1,
+            initial: false,
+            hideMarkerOnCollapse: true,
+            propertyName: 'ZNOMBRE'}));
+        document.getElementsByClassName('search-button')[0].className +=
+         ' fa fa-binoculars';
+        var mapDiv = document.getElementById('map');
+        var row = document.createElement('div');
+        row.className="row";
+        row.id="all";
+        row.style.height = "100%";
+        var col1 = document.createElement('div');
+        col1.className="col9";
+        col1.id = "mapWindow";
+        col1.style.height = "99%";
+        col1.style.width = "80%";
+        col1.style.display = "inline-block";
+        var col2 = document.createElement('div');
+        col2.className="col3";
+        col2.id = "menu";
+        col2.style.display = "inline-block";
+        mapDiv.parentNode.insertBefore(row, mapDiv);
+        document.getElementById("all").appendChild(col1);
+        document.getElementById("all").appendChild(col2);
+        col1.appendChild(mapDiv)
+        var Filters = {"Cultivo_parcela": "str","Fert_parcela": "str","Observaciones_muestra": "str"};
+        function filterFunc() {
+          map.eachLayer(function(lyr){
+          if ("options" in lyr && "dataVar" in lyr["options"]){
+            features = this[lyr["options"]["dataVar"]].features.slice(0);
+            try{
+              for (key in Filters){
+                keyS = key.replace(/[^a-zA-Z0-9_]/g, "")
+                if (Filters[key] == "str" || Filters[key] == "bool"){
+                  var selection = [];
+                  var options = document.getElementById("sel_" + keyS).options
+                  for (var i=0; i < options.length; i++) {
+                    if (options[i].selected) selection.push(options[i].value);
+                  }
+                    try{
+                      if (key in features[0].properties){
+                        for (i = features.length - 1;
+                          i >= 0; --i){
+                          if (selection.indexOf(
+                          features[i].properties[key])<0
+                          && selection.length>0) {
+                          features.splice(i,1);
+                          }
+                        }
+                      }
+                    } catch(err){
+                  }
+                }
+                if (Filters[key] == "int"){
+                  sliderVals =  document.getElementById(
+                    "div_" + keyS).noUiSlider.get();
+                  try{
+                    if (key in features[0].properties){
+                    for (i = features.length - 1; i >= 0; --i){
+                      if (parseInt(features[i].properties[key])
+                          < sliderVals[0]
+                          || parseInt(features[i].properties[key])
+                          > sliderVals[1]){
+                            features.splice(i,1);
+                          }
+                        }
+                      }
+                    } catch(err){
+                    }
+                  }
+                if (Filters[key] == "real"){
+                  sliderVals =  document.getElementById(
+                    "div_" + keyS).noUiSlider.get();
+                  try{
+                    if (key in features[0].properties){
+                    for (i = features.length - 1; i >= 0; --i){
+                      if (features[i].properties[key]
+                          < sliderVals[0]
+                          || features[i].properties[key]
+                          > sliderVals[1]){
+                            features.splice(i,1);
+                          }
+                        }
+                      }
+                    } catch(err){
+                    }
+                  }
+                if (Filters[key] == "date"
+                  || Filters[key] == "datetime"
+                  || Filters[key] == "time"){
+                  try{
+                    if (key in features[0].properties){
+                      HTMLkey = key.replace(/[&\/\\#,+()$~%.'":*?<>{} ]/g, '');
+                      startdate = document.getElementById("dat_" +
+                        HTMLkey + "_date1").value.replace(" ", "T");
+                      enddate = document.getElementById("dat_" +
+                        HTMLkey + "_date2").value.replace(" ", "T");
+                      for (i = features.length - 1; i >= 0; --i){
+                        if (features[i].properties[key] < startdate
+                          || features[i].properties[key] > enddate){
+                          features.splice(i,1);
+                        }
+                      }
+                    }
+                  } catch(err){
+                  }
+                }
+              }
+            } catch(err){
+            }
+          this[lyr["options"]["layerName"]].clearLayers();
+          this[lyr["options"]["layerName"]].addData(features);
+          }
+          })
+        }
+            document.getElementById("menu").appendChild(
+                document.createElement("div"));
+            var div_Cultivo_parcela = document.createElement('div');
+            div_Cultivo_parcela.id = "div_Cultivo_parcela";
+            div_Cultivo_parcela.className= "filterselect";
+            document.getElementById("menu").appendChild(div_Cultivo_parcela);
+            sel_Cultivo_parcela = document.createElement('select');
+            sel_Cultivo_parcela.multiple = true;
+            sel_Cultivo_parcela.size = 9;
+            sel_Cultivo_parcela.id = "sel_Cultivo_parcela";
+            var Cultivo_parcela_options_str = "<option value='' unselected></option>";
+            sel_Cultivo_parcela.onchange = function(){filterFunc()};
+            Cultivo_parcela_options_str  += '<option value="2-3 días según necesidad">2-3 días según necesidad</option>';
+            Cultivo_parcela_options_str  += '<option value="7 días">7 días</option>';
+            Cultivo_parcela_options_str  += '<option value="7 días aprox">7 días aprox</option>';
+            Cultivo_parcela_options_str  += '<option value="8 días">8 días</option>';
+            Cultivo_parcela_options_str  += '<option value="8 días aprox">8 días aprox</option>';
+            Cultivo_parcela_options_str  += '<option value="No se ha regado en el último tiempo">No se ha regado en el último tiempo</option>';
+            Cultivo_parcela_options_str  += '<option value="alfalfa">alfalfa</option>';
+            Cultivo_parcela_options_str  += '<option value="horticola">horticola</option>';
+            Cultivo_parcela_options_str  += '<option value="vid">vid</option>';
+            sel_Cultivo_parcela.innerHTML = Cultivo_parcela_options_str;
+            div_Cultivo_parcela.appendChild(sel_Cultivo_parcela);
+            var lab_Cultivo_parcela = document.createElement('div');
+            lab_Cultivo_parcela.innerHTML = 'Cultivo_parcela';
+            lab_Cultivo_parcela.className = 'filterlabel';
+            div_Cultivo_parcela.appendChild(lab_Cultivo_parcela);
+            var reset_Cultivo_parcela = document.createElement('div');
+            reset_Cultivo_parcela.innerHTML = 'clear filter';
+            reset_Cultivo_parcela.className = 'filterlabel';
+            reset_Cultivo_parcela.onclick = function() {
+                var options = document.getElementById("sel_Cultivo_parcela").options;
+                for (var i=0; i < options.length; i++) {
+                    options[i].selected = false;
+                }
+                filterFunc();
+            };
+            div_Cultivo_parcela.appendChild(reset_Cultivo_parcela);
+            document.getElementById("menu").appendChild(
+                document.createElement("div"));
+            var div_Fert_parcela = document.createElement('div');
+            div_Fert_parcela.id = "div_Fert_parcela";
+            div_Fert_parcela.className= "filterselect";
+            document.getElementById("menu").appendChild(div_Fert_parcela);
+            sel_Fert_parcela = document.createElement('select');
+            sel_Fert_parcela.multiple = true;
+            sel_Fert_parcela.size = 10;
+            sel_Fert_parcela.id = "sel_Fert_parcela";
+            var Fert_parcela_options_str = "<option value='' unselected></option>";
+            sel_Fert_parcela.onchange = function(){filterFunc()};
+            Fert_parcela_options_str  += '<option value=" abundancia de agua"> abundancia de agua</option>';
+            Fert_parcela_options_str  += '<option value=" hay abundancia de agua"> hay abundancia de agua</option>';
+            Fert_parcela_options_str  += '<option value="Fresno">Fresno</option>';
+            Fert_parcela_options_str  += '<option value="Guano-químico">Guano-químico</option>';
+            Fert_parcela_options_str  += '<option value="Membrillo">Membrillo</option>';
+            Fert_parcela_options_str  += '<option value="Sin cultivo">Sin cultivo</option>';
+            Fert_parcela_options_str  += '<option value="Uva de mesa">Uva de mesa</option>';
+            Fert_parcela_options_str  += '<option value="acelga/remolacha">acelga/remolacha</option>';
+            Fert_parcela_options_str  += '<option value="flores">flores</option>';
+            Fert_parcela_options_str  += '<option value="guano de gallina">guano de gallina</option>';
+            Fert_parcela_options_str  += '<option value="guano-bioinsumos">guano-bioinsumos</option>';
+            Fert_parcela_options_str  += '<option value="inculto">inculto</option>';
+            Fert_parcela_options_str  += '<option value="nogales">nogales</option>';
+            Fert_parcela_options_str  += '<option value="tomate">tomate</option>';
+            sel_Fert_parcela.innerHTML = Fert_parcela_options_str;
+            div_Fert_parcela.appendChild(sel_Fert_parcela);
+            var lab_Fert_parcela = document.createElement('div');
+            lab_Fert_parcela.innerHTML = 'Fert_parcela';
+            lab_Fert_parcela.className = 'filterlabel';
+            div_Fert_parcela.appendChild(lab_Fert_parcela);
+            var reset_Fert_parcela = document.createElement('div');
+            reset_Fert_parcela.innerHTML = 'clear filter';
+            reset_Fert_parcela.className = 'filterlabel';
+            reset_Fert_parcela.onclick = function() {
+                var options = document.getElementById("sel_Fert_parcela").options;
+                for (var i=0; i < options.length; i++) {
+                    options[i].selected = false;
+                }
+                filterFunc();
+            };
+            div_Fert_parcela.appendChild(reset_Fert_parcela);
+            document.getElementById("menu").appendChild(
+                document.createElement("div"));
+            var div_Observaciones_muestra = document.createElement('div');
+            div_Observaciones_muestra.id = "div_Observaciones_muestra";
+            div_Observaciones_muestra.className= "filterselect";
+            document.getElementById("menu").appendChild(div_Observaciones_muestra);
+            sel_Observaciones_muestra = document.createElement('select');
+            sel_Observaciones_muestra.multiple = true;
+            sel_Observaciones_muestra.size = 8;
+            sel_Observaciones_muestra.id = "sel_Observaciones_muestra";
+            var Observaciones_muestra_options_str = "<option value='' unselected></option>";
+            sel_Observaciones_muestra.onchange = function(){filterFunc()};
+            Observaciones_muestra_options_str  += '<option value="NULL">NULL</option>';
+            Observaciones_muestra_options_str  += '<option value=" ajo"> ajo</option>';
+            Observaciones_muestra_options_str  += '<option value=" sulfato de cobre"> sulfato de cobre</option>';
+            Observaciones_muestra_options_str  += '<option value="Pala">Pala</option>';
+            Observaciones_muestra_options_str  += '<option value="Zapa">Zapa</option>';
+            Observaciones_muestra_options_str  += '<option value="corte con zapa o arrancado a mano">corte con zapa o arrancado a mano</option>';
+            Observaciones_muestra_options_str  += '<option value="rastra y surqueado con tractor peque�o entre hileras. hay cultivo de cobertura AVENA y ahora VICIA">rastra y surqueado con tractor peque�o entre hileras. hay cultivo de cobertura AVENA y ahora VICIA</option>';
+            Observaciones_muestra_options_str  += '<option value="se mueve el suelo a pala">se mueve el suelo a pala</option>';
+            sel_Observaciones_muestra.innerHTML = Observaciones_muestra_options_str;
+            div_Observaciones_muestra.appendChild(sel_Observaciones_muestra);
+            var lab_Observaciones_muestra = document.createElement('div');
+            lab_Observaciones_muestra.innerHTML = 'Observaciones_muestra';
+            lab_Observaciones_muestra.className = 'filterlabel';
+            div_Observaciones_muestra.appendChild(lab_Observaciones_muestra);
+            var reset_Observaciones_muestra = document.createElement('div');
+            reset_Observaciones_muestra.innerHTML = 'clear filter';
+            reset_Observaciones_muestra.className = 'filterlabel';
+            reset_Observaciones_muestra.onclick = function() {
+                var options = document.getElementById("sel_Observaciones_muestra").options;
+                for (var i=0; i < options.length; i++) {
+                    options[i].selected = false;
+                }
+                filterFunc();
+            };
+            div_Observaciones_muestra.appendChild(reset_Observaciones_muestra);
+        </script>
+    </body>
+</html>
